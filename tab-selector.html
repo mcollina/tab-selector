@@ -77,7 +77,7 @@ Automatically select a paper-tab on scroll.
           , headerPanel = this.querySelector('core-header-panel')
           , sections    = Array.prototype.slice.call(this.querySelectorAll('section'), 0)
           , that        = this
-          , currentTab  = null
+          , currentTab  = ''
 
         if (!tabs)
           throw new Error('Missing inner paper-tabs element')
@@ -89,8 +89,9 @@ Automatically select a paper-tab on scroll.
           throw new Error('Missing inner section elements')
 
         function selectTab(tab, done) {
+          console.log('selecting', tab)
           if (currentTab === tab)
-            return done(null, null, null)
+            return
 
           var previousTab = currentTab
 
