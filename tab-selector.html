@@ -1,0 +1,105 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+Element providing solution to no problem in particular.
+
+##### Example
+
+    <tab-selector></tab-selector>
+
+@element tab-selector
+@blurb Element providing solution to no problem in particular.
+@status alpha
+@homepage http://mcollina.github.io/tab-selector
+-->
+<polymer-element name="tab-selector" attributes="tab">
+
+  <template>
+    <content select="*"></content>
+  </template>
+
+  <script>
+
+    Polymer('tab-selector', {
+      /**
+       * The current (selected) tab.
+       *
+       * @attribute tab
+       * @type string
+       * @default ''
+       */
+      tab: '',
+
+      ready: function() {
+        var tabs = this.querySelector('paper-tabs')
+          , headerPanel = this.querySelector('core-header-panel')
+          , sections = this.querySelectorAll('section')
+          , disabled = false
+
+        if (!tabs)
+          throw new Error('Missing inner paper-tabs element')
+
+        if (!headerPanel)
+          throw new Error('Missing inner core-header-panel element')
+
+        if (!sections)
+          throw new Error('Missing inner section elements')
+
+        function disable() {
+          // TODO fire event
+          disabled = true
+          setTimeout(function() {
+            disabled = false
+          }, 50)
+        }
+
+        function syncHash() {
+          if (history && history.pushState) {
+            history.pushState(null, null, '#' + tabs.selected);
+          } else {
+            location.hash = tabs.selected
+          }
+        }
+
+        disable()
+
+        tabs.selected = location.hash.replace('#', '')
+
+        tabs.addEventListener('core-select', function(e) {
+          if (disabled)
+            return
+
+          syncHash()
+          disable()
+        })
+
+        headerPanel.addEventListener('scroll', function(e) {
+          if (disabled || !e.detail || !e.detail.target)
+            return
+
+          var section
+            , i
+
+          for (i = 0; i < sections.length; ++i) {
+            if (sections[i].offsetTop - sections[0].offsetTop > e.detail.target.scrollTop)
+              break
+
+            section = sections[i]
+          }
+
+          if (!section)
+            section = sections[i]
+
+          tabs.selected = section.id
+
+          syncHash()
+          disable()
+        })
+      },
+
+
+    })
+
+  </script>
+
+</polymer-element>
