@@ -1,14 +1,57 @@
+<!--
+The MIT License (MIT)
+
+Copyright (c) 2014 Matteo Collina
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+
 <link rel="import" href="../polymer/polymer.html">
 
 <!--
-Element providing solution to no problem in particular.
+Automatically select a paper-tab on scroll.
 
 ##### Example
 
-    <tab-selector></tab-selector>
+    <tab-selector>
+      <core-header-panel>
+        <core-toolbar>
+          <paper-tabs valueattr="name">
+            <paper-tab name="first">First</paper-tab>
+            <paper-tab name="second">Second</paper-tab>
+            <paper-tab name="third">Third</paper-tab>
+          </paper-tabs>
+        </core-toolbar>
+
+        <section id="first">
+          ...
+        </section>
+        <section id="second">
+          ...
+        </section>
+        <section id="third">
+          ...
+        </section>
+    </tab-selector>
 
 @element tab-selector
-@blurb Element providing solution to no problem in particular.
+@blurb Automatically select a paper-tab on scroll.
 @status alpha
 @homepage http://mcollina.github.io/tab-selector
 -->
@@ -22,19 +65,19 @@ Element providing solution to no problem in particular.
 
     Polymer('tab-selector', {
       /**
-       * The current (selected) tab.
-       *
-       * @attribute tab
-       * @type string
-       * @default ''
-       */
-      tab: '',
+        Fired when an item's selection state is changed. This event is fired only
+        when a tab is selected.
+
+        @event core-select
+        @param {string} tab The tab id
+        */
 
       ready: function() {
-        var tabs = this.querySelector('paper-tabs')
+        var tabs        = this.querySelector('paper-tabs')
           , headerPanel = this.querySelector('core-header-panel')
-          , sections = this.querySelectorAll('section')
-          , disabled = false
+          , sections    = Array.prototype.slice.call(this.querySelectorAll('section'), 0)
+          , that        = this
+          , currentTab  = null
 
         if (!tabs)
           throw new Error('Missing inner paper-tabs element')
@@ -45,59 +88,56 @@ Element providing solution to no problem in particular.
         if (!sections)
           throw new Error('Missing inner section elements')
 
-        function disable() {
-          // TODO fire event
-          disabled = true
-          setTimeout(function() {
-            disabled = false
-          }, 50)
-        }
+        function selectTab(tab, done) {
+          if (currentTab === tab)
+            return done(null, null, null)
 
-        function syncHash() {
+          var previousTab = currentTab
+
+          currentTab = tab
+          tabs.selected = tab
+
           if (history && history.pushState) {
-            history.pushState(null, null, '#' + tabs.selected);
+            history.pushState(null, null, '#' + tab);
           } else {
-            location.hash = tabs.selected
+            location.hash = tab
           }
+
+          that.asyncFire('tab-select', tab)
+          done(previousTab, currentTab)
         }
 
-        disable()
+        function noop() {}
 
-        tabs.selected = location.hash.replace('#', '')
+        selectTab(location.hash.replace('#', ''), noop)
 
         tabs.addEventListener('core-select', function(e) {
-          if (disabled)
-            return
-
-          syncHash()
-          disable()
+          selectTab(tabs.selected, function(previous, current) {
+            sections.forEach(function(section) {
+              if (section.id === current)
+                section.scrollIntoView()
+            })
+          })
         })
 
         headerPanel.addEventListener('scroll', function(e) {
-          if (disabled || !e.detail || !e.detail.target)
+
+          if (!e.detail || !e.detail.target)
             return
 
-          var section
-            , i
+          selectTab(sections.sort(function(a, b) {
+            var valueA = Math.abs(a.offsetTop - e.detail.target.scrollTop)
+              , valueB = Math.abs(b.offsetTop - e.detail.target.scrollTop)
 
-          for (i = 0; i < sections.length; ++i) {
-            if (sections[i].offsetTop - sections[0].offsetTop > e.detail.target.scrollTop)
-              break
 
-            section = sections[i]
-          }
+            if (valueA > valueB)
+              return 1
+            else
+              return -1
 
-          if (!section)
-            section = sections[i]
-
-          tabs.selected = section.id
-
-          syncHash()
-          disable()
+          })[0].id, noop)
         })
-      },
-
-
+      }
     })
 
   </script>
