@@ -1,0 +1,145 @@
+<!--
+The MIT License (MIT)
+
+Copyright (c) 2014 Matteo Collina
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+Automatically select a paper-tab on scroll.
+
+##### Example
+
+    <tab-selector>
+      <core-header-panel>
+        <core-toolbar>
+          <paper-tabs valueattr="name">
+            <paper-tab name="first">First</paper-tab>
+            <paper-tab name="second">Second</paper-tab>
+            <paper-tab name="third">Third</paper-tab>
+          </paper-tabs>
+        </core-toolbar>
+
+        <section id="first">
+          ...
+        </section>
+        <section id="second">
+          ...
+        </section>
+        <section id="third">
+          ...
+        </section>
+    </tab-selector>
+
+@element tab-selector
+@blurb Automatically select a paper-tab on scroll.
+@status alpha
+@homepage http://mcollina.github.io/tab-selector
+-->
+<polymer-element name="tab-selector" attributes="tab">
+
+  <template>
+    <content select="*"></content>
+  </template>
+
+  <script>
+
+    Polymer('tab-selector', {
+      /**
+        Fired when an item's selection state is changed. This event is fired only
+        when a tab is selected.
+
+        @event core-select
+        @param {string} tab The tab id
+        */
+
+      ready: function() {
+        var tabs        = this.querySelector('paper-tabs')
+          , headerPanel = this.querySelector('core-header-panel')
+          , sections    = Array.prototype.slice.call(this.querySelectorAll('section'), 0)
+          , that        = this
+          , currentTab  = null
+
+        if (!tabs)
+          throw new Error('Missing inner paper-tabs element')
+
+        if (!headerPanel)
+          throw new Error('Missing inner core-header-panel element')
+
+        if (!sections)
+          throw new Error('Missing inner section elements')
+
+        function selectTab(tab, done) {
+          if (currentTab === tab)
+            return done(null, null, null)
+
+          var previousTab = currentTab
+
+          currentTab = tab
+          tabs.selected = tab
+
+          if (history && history.pushState) {
+            history.pushState(null, null, '#' + tab);
+          } else {
+            location.hash = tab
+          }
+
+          that.asyncFire('tab-select', tab)
+          done(previousTab, currentTab)
+        }
+
+        function noop() {}
+
+        selectTab(location.hash.replace('#', ''), noop)
+
+        tabs.addEventListener('core-select', function(e) {
+          selectTab(tabs.selected, function(previous, current) {
+            sections.forEach(function(section) {
+              if (section.id === current)
+                section.scrollIntoView()
+            })
+          })
+        })
+
+        headerPanel.addEventListener('scroll', function(e) {
+
+          if (!e.detail || !e.detail.target)
+            return
+
+          selectTab(sections.sort(function(a, b) {
+            var valueA = Math.abs(a.offsetTop - e.detail.target.scrollTop)
+              , valueB = Math.abs(b.offsetTop - e.detail.target.scrollTop)
+
+
+            if (valueA > valueB)
+              return 1
+            else
+              return -1
+
+          })[0].id, noop)
+        })
+      }
+    })
+
+  </script>
+
+</polymer-element>

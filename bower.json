@@ -1,0 +1,7 @@
+{
+  "name": "tab-selector#gh-pages",
+  "private": true,
+  "dependencies": {
+    "tab-selector": "mcollina/tab-selector#master"
+  }
+}
